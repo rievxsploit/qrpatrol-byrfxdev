@@ -1,11 +1,11 @@
 // Ganti dengan konfigurasi Firebase kamu
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyArIi3LoUzzKEMzuex4WJr-iIhYxQWCi-k",
+  authDomain: "qrpatrol-8bffa.firebaseapp.com",
+  projectId: "qrpatrol-8bffa",
+  storageBucket: "qrpatrol-8bffa.firebasestorage.app",
+  messagingSenderId: "754593461619",
+  appId: "1:754593461619:web:5b61abddcdaa310203c106",
 };
 
 firebase.initializeApp(firebaseConfig);
