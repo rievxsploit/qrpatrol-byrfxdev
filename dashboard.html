@@ -29,20 +29,24 @@
 
   <!-- Tabel Log Patroli -->
   <h3 class="text-lg font-semibold mb-2">Log Patroli</h3>
-  <table class="table-auto w-full text-sm mb-2 bg-white rounded shadow">
-    <thead>
-      <tr class="bg-gray-200">
-        <th class="px-2 py-1">Waktu</th>
-        <th class="px-2 py-1">QR</th>
-      </tr>
-    </thead>
-    <tbody id="log-table"></tbody>
-  </table>
+  <div class="overflow-auto max-w-full">
+    <table class="table-auto w-full text-sm bg-white rounded shadow">
+      <thead>
+        <tr class="bg-gray-200 text-left">
+          <th class="px-2 py-1">Waktu</th>
+          <th class="px-2 py-1">QR Code</th>
+          <th class="px-2 py-1">Nama Titik</th>
+          <th class="px-2 py-1">Lokasi (Lat,Lng)</th>
+        </tr>
+      </thead>
+      <tbody id="log-table"></tbody>
+    </table>
+  </div>
 
   <!-- Tombol Export CSV -->
   <button
     onclick="exportCSV()"
-    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md"
+    class="mt-3 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md"
   >
     Export CSV
   </button>
