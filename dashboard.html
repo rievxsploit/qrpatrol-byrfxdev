@@ -1,18 +1,60 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Dashboard QR Patrol</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QR Patrol Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <h2>Scan QR Code</h2>
-  <div id="qr-reader" style="width:300px;"></div>
-  <div id="result"></div>
-  <button onclick="auth.signOut().then(() => window.location.href = 'login.html')">Logout</button>
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-<script src="script/firebase-config.js"></script>
+<body class="bg-gray-100 p-4">
+  <h2 class="text-xl font-semibold mb-4">Scan QR Code</h2>
+
+  <!-- Area QR Scanner -->
+  <div class="mb-4" id="qr-reader" style="width: 100%; max-width: 400px;"></div>
+  <button
+    id="toggle-flash"
+    class="mb-4 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md hidden"
+  >
+    Toggle Flash
+  </button>
+  <div id="result" class="mb-4 font-mono text-green-600"></div>
+
+  <!-- Tombol Logout -->
+  <button
+    onclick="logout()"
+    class="mb-4 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md"
+  >
+    Logout
+  </button>
+
+  <!-- Tabel Log Patroli -->
+  <h3 class="text-lg font-semibold mb-2">Log Patroli</h3>
+  <table class="table-auto w-full text-sm mb-2 bg-white rounded shadow">
+    <thead>
+      <tr class="bg-gray-200">
+        <th class="px-2 py-1">Waktu</th>
+        <th class="px-2 py-1">QR</th>
+      </tr>
+    </thead>
+    <tbody id="log-table"></tbody>
+  </table>
+
+  <!-- Tombol Export CSV -->
+  <button
+    onclick="exportCSV()"
+    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md"
+  >
+    Export CSV
+  </button>
+
+  <!-- Firebase & QR Scanner -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
   <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <!-- Config & Logic -->
+  <script src="script/firebase-config.js"></script>
   <script src="script/dashboard.js"></script>
 </body>
 </html>
