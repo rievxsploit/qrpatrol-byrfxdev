@@ -1,9 +1,8 @@
-// Ganti dengan konfigurasi Firebase kamu
 const firebaseConfig = {
   apiKey: "AIzaSyArIi3LoUzzKEMzuex4WJr-iIhYxQWCi-k",
   authDomain: "qrpatrol-8bffa.firebaseapp.com",
   projectId: "qrpatrol-8bffa",
-  storageBucket: "qrpatrol-8bffa.firebasestorage.app",
+  storageBucket: "qrpatrol-8bffa.appspot.com", // ✅ diperbaiki
   messagingSenderId: "754593461619",
   appId: "1:754593461619:web:5b61abddcdaa310203c106",
   measurementId: "G-G39HTJZVZC"
