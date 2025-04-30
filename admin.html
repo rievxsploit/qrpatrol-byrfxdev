@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Panel - QR Patrol</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-4">
+  <div class="max-w-5xl mx-auto">
+    <h1 class="text-2xl font-semibold mb-4 text-center">Admin Panel</h1>
+    <p class="mb-4 text-center text-gray-600">Hanya admin yang dapat mengakses halaman ini.</p>
+
+    <!-- Seksi Lokasi -->
+    <section class="mb-6">
+      <h2 class="text-xl font-semibold mb-2">Daftar Titik Lokasi</h2>
+      <table class="w-full bg-white rounded shadow text-sm">
+        <thead class="bg-gray-200">
+          <tr>
+            <th class="px-3 py-2 text-left">ID</th>
+            <th class="px-3 py-2 text-left">Nama Titik</th>
+            <th class="px-3 py-2 text-left">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="locations-table"></tbody>
+      </table>
+    </section>
+
+    <!-- Seksi Log Patroli -->
+    <section>
+      <h2 class="text-xl font-semibold mb-2">Log Patroli</h2>
+      <table class="w-full bg-white rounded shadow text-sm">
+        <thead class="bg-gray-200">
+          <tr>
+            <th class="px-3 py-2 text-left">Waktu</th>
+            <th class="px-3 py-2 text-left">User</th>
+            <th class="px-3 py-2 text-left">QR</th>
+            <th class="px-3 py-2 text-left">Titik</th>
+            <th class="px-3 py-2 text-left">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="logs-table"></tbody>
+      </table>
+    </section>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+  <script src="script/firebase-config.js"></script>
+
+  <script>
+    const adminEmails = ["admin@i201.com"]; // Ganti dengan email admin kamu
+
+    auth.onAuthStateChanged(user => {
+      if (!user || !adminEmails.includes(user.email)) {
+        alert("Akses ditolak: hanya admin.");
+        window.location.href = "login.html";
+        return;
+      }
+
+      // Load Lokasi
+      db.collection("locations").onSnapshot(snapshot => {
+        const table = document.getElementById("locations-table");
+        table.innerHTML = "";
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          table.innerHTML += `
+            <tr>
+              <td class="border px-3 py-2">${doc.id}</td>
+              <td class="border px-3 py-2">${data.namaTitik}</td>
+              <td class="border px-3 py-2">
+                <button onclick="editLocation('${doc.id}', '${data.namaTitik}')" class="text-blue-600">Edit</button> |
+                <button onclick="deleteLocation('${doc.id}')" class="text-red-600">Hapus</button>
+              </td>
+            </tr>`;
+        });
+      });
+
+      // Load Log Patroli
+      db.collection("patrol_logs").orderBy("timestamp", "desc").limit(50).onSnapshot(snapshot => {
+        const table = document.getElementById("logs-table");
+        table.innerHTML = "";
+        snapshot.forEach(doc => {
+          const d = doc.data();
+          const time = d.timestamp?.toDate().toLocaleString() || "-";
+          table.innerHTML += `
+            <tr>
+              <td class="border px-3 py-2">${time}</td>
+              <td class="border px-3 py-2">${d.userId}</td>
+              <td class="border px-3 py-2">${d.qrData}</td>
+              <td class="border px-3 py-2">${d.namaTitik || "-"}</td>
+              <td class="border px-3 py-2">
+                <button onclick="deleteLog('${doc.id}')" class="text-red-600">Hapus</button>
+              </td>
+            </tr>`;
+        });
+      });
+    });
+
+    function editLocation(id, oldName) {
+      const newName = prompt("Edit nama titik:", oldName);
+      if (newName) {
+        db.collection("locations").doc(id).update({ namaTitik: newName });
+      }
+    }
+
+    function deleteLocation(id) {
+      if (confirm(`Hapus titik lokasi "${id}"?`)) {
+        db.collection("locations").doc(id).delete();
+      }
+    }
+
+    function deleteLog(id) {
+      if (confirm("Hapus log ini?")) {
+        db.collection("patrol_logs").doc(id).delete();
+      }
+    }
+  </script>
+</body>
+</html>
