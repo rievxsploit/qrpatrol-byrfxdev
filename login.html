@@ -1,17 +1,41 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Login QR Patrol</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <h2>Login</h2>
-  <input type="email" id="email" placeholder="Email">
-  <input type="password" id="password" placeholder="Password">
-  <button onclick="login()">Login</button>
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-<script src="script/firebase-config.js"></script>
-<script src="script/login.js"></script>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+  <div class="bg-white p-6 rounded-lg shadow-md w-full max-w-sm">
+    <h2 class="text-xl font-semibold mb-4 text-center">Login Petugas</h2>
+    <input
+      type="email"
+      id="email"
+      placeholder="Email"
+      class="w-full mb-3 px-4 py-2 border border-gray-300 rounded-md"
+    />
+    <input
+      type="password"
+      id="password"
+      placeholder="Password"
+      class="w-full mb-3 px-4 py-2 border border-gray-300 rounded-md"
+    />
+    <div id="login-error" class="text-red-500 text-sm mb-2 hidden"></div>
+    <button
+      onclick="login()"
+      class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md"
+    >
+      Login
+    </button>
+  </div>
+
+  <!-- Firebase CDN (Compat Version) -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+
+  <!-- Firebase Config + Login Logic -->
+  <script src="script/firebase-config.js"></script>
+  <script src="script/login.js"></script>
 </body>
 </html>
