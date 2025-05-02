@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dashboard QR Patrol</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/qr-scanner/qr-scanner.umd.min.js"></script>
+  <!-- html5-qrcode scanner -->
+  <script type="module" src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
@@ -14,20 +15,9 @@
   <div class="max-w-xl mx-auto p-4">
     <h1 class="text-2xl font-bold mb-4 text-center">QR Patrol Dashboard</h1>
 
-    <!-- Video Scanner -->
+    <!-- Scanner -->
     <div class="mb-4">
-      <video id="qr-video" class="w-full rounded shadow-md border"></video>
-      <div class="flex justify-between mt-2 space-x-2">
-        <button id="rescan-btn" class="flex-1 bg-blue-500 text-white py-2 px-4 rounded hidden">
-          🔁 Scan Ulang
-        </button>
-        <button id="toggle-flash" class="flex-1 bg-yellow-500 text-white py-2 px-4 rounded hidden">
-          🔦 Flash
-        </button>
-        <button id="switch-camera" class="flex-1 bg-purple-500 text-white py-2 px-4 rounded hidden">
-          🔄 Ganti Kamera
-        </button>
-      </div>
+      <div id="qr-reader" class="w-full rounded shadow-md border"></div>
     </div>
 
     <!-- Log Section -->
@@ -48,5 +38,35 @@
 
   <script src="firebase-config.js"></script>
   <script src="dashboard.js"></script>
+
+  <script type="module">
+    import { Html5Qrcode } from "https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js";
+
+    const qrRegionId = "qr-reader";
+    const html5QrCode = new Html5Qrcode(qrRegionId);
+
+    Html5Qrcode.getCameras().then(devices => {
+      if (devices && devices.length) {
+        const backCamera = devices.find(d => d.label.toLowerCase().includes('back')) || devices[0];
+        html5QrCode.start(
+          backCamera.id,
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            rememberLastUsedCamera: true,
+            aspectRatio: 1.777
+          },
+          qrCodeMessage => {
+            console.log("QR Code:", qrCodeMessage);
+            // Panggil fungsi dari dashboard.js kalau ada
+            window.handleQRCodeScanned && window.handleQRCodeScanned(qrCodeMessage);
+          },
+          errorMessage => {
+            // Bisa disembunyikan jika terlalu sering
+          }
+        ).catch(err => console.error("Start error:", err));
+      }
+    }).catch(err => console.error("Camera error:", err));
+  </script>
 </body>
 </html>
