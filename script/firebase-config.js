@@ -1,3 +1,9 @@
+// firebase-config.js
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+// Ganti konfigurasi ini sesuai dengan Firebase Project Anda
 const firebaseConfig = {
   apiKey: "AIzaSyArIi3LoUzzKEMzuex4WJr-iIhYxQWCi-k",
   authDomain: "qrpatrol-8bffa.firebaseapp.com",
@@ -8,9 +14,12 @@ const firebaseConfig = {
   measurementId: "G-G39HTJZVZC"
 };
 
-// Inisialisasi Firebase
-firebase.initializeApp(firebaseConfig);
 
-// Inisialisasi Auth dan Firestore
-const auth = firebase.auth();
-const db = firebase.firestore();
+// Inisialisasi Firebase
+const app = initializeApp(firebaseConfig);
+
+// Ekspor modul yang dibutuhkan
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+export { auth, db };
