@@ -1,72 +1,64 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Dashboard QR Patrol</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QR Patrol Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- html5-qrcode scanner -->
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+</head>
+<body class="bg-gray-100 p-4">
+  <h2 class="text-xl font-semibold mb-4">Scan QR Code</h2>
+
+  <!-- Area QR Scanner -->
+  <div class="mb-4" id="qr-reader" style="width: 100%; max-width: 400px;"></div>
+  <button
+    id="toggle-flash"
+    class="mb-4 bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md hidden"
+  >
+    Toggle Flash
+  </button>
+  <div id="result" class="mb-4 font-mono text-green-600"></div>
+
+  <!-- Tombol Logout -->
+  <button
+    onclick="logout()"
+    class="mb-4 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md"
+  >
+    Logout
+  </button>
+
+  <!-- Tabel Log Patroli -->
+  <h3 class="text-lg font-semibold mb-2">Log Patroli</h3>
+  <div class="overflow-auto max-w-full">
+    <table class="table-auto w-full text-sm bg-white rounded shadow">
+      <thead>
+        <tr class="bg-gray-200 text-left">
+          <th class="px-2 py-1">Waktu</th>
+          <th class="px-2 py-1">QR Code</th>
+          <th class="px-2 py-1">Nama Titik</th>
+          <th class="px-2 py-1">Lokasi (Lat,Lng)</th>
+        </tr>
+      </thead>
+      <tbody id="log-table"></tbody>
+    </table>
+  </div>
+
+  <!-- Tombol Export CSV -->
+  <button
+    onclick="exportCSV()"
+    class="mt-3 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md"
+  >
+    Export CSV
+  </button>
+
+  <!-- Firebase & QR Scanner -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-</head>
-<body class="bg-gray-100 text-gray-800">
-  <div class="max-w-xl mx-auto p-4">
-    <h1 class="text-2xl font-bold mb-4 text-center">QR Patrol Dashboard</h1>
+  <script src="https://unpkg.com/html5-qrcode"></script>
 
-    <!-- Scanner -->
-    <div class="mb-4">
-      <div id="qr-reader" class="w-full rounded shadow-md border"></div>
-    </div>
-
-    <!-- Log Section -->
-    <div class="mb-6">
-      <h2 class="text-lg font-semibold mb-2">Histori Scan Anda</h2>
-      <ul id="log-list" class="bg-white rounded shadow p-4 space-y-2 max-h-64 overflow-y-auto">
-        <li>Memuat data...</li>
-      </ul>
-      <button id="export-btn" class="mt-2 w-full bg-green-600 text-white py-2 px-4 rounded">
-        📤 Ekspor ke Excel
-      </button>
-    </div>
-
-    <button id="logout-btn" class="w-full bg-red-500 text-white py-2 px-4 rounded">
-      🔓 Logout
-    </button>
-  </div>
-
-  <script src="firebase-config.js"></script>
-  <script src="dashboard.js"></script>
-
-  <script type="module">
-    import { Html5Qrcode } from "https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js";
-
-    const qrRegionId = "qr-reader";
-    const html5QrCode = new Html5Qrcode(qrRegionId);
-
-    Html5Qrcode.getCameras().then(devices => {
-      if (devices && devices.length) {
-        const backCamera = devices.find(d => d.label.toLowerCase().includes('back')) || devices[0];
-        html5QrCode.start(
-          backCamera.id,
-          {
-            fps: 10,
-            qrbox: { width: 250, height: 250 },
-            rememberLastUsedCamera: true,
-            aspectRatio: 1.777
-          },
-          qrCodeMessage => {
-            console.log("QR Code:", qrCodeMessage);
-            // Panggil fungsi dari dashboard.js kalau ada
-            window.handleQRCodeScanned && window.handleQRCodeScanned(qrCodeMessage);
-          },
-          errorMessage => {
-            // Bisa disembunyikan jika terlalu sering
-          }
-        ).catch(err => console.error("Start error:", err));
-      }
-    }).catch(err => console.error("Camera error:", err));
-  </script>
+  <!-- Config & Logic -->
+  <script src="script/firebase-config.js"></script>
+  <script src="script/dashboard.js"></script>
 </body>
 </html>
