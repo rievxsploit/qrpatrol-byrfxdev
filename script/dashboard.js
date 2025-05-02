@@ -1,167 +1,102 @@
-function logout() {
-  auth.signOut().then(() => window.location.href = 'login.html');
-}
+const firebaseConfig = {
+  // Ganti dengan konfigurasi Firebase milikmu
+};
+
+// Inisialisasi Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
 
 let qrScanner;
-let torchOn = false;
+const videoElem = document.getElementById("qr-video");
 
+// Autentikasi: cek user login
 auth.onAuthStateChanged(user => {
   if (!user) {
     window.location.href = "login.html";
   } else {
-    const qrRegion = document.getElementById("qr-reader");
-    const flashBtn = document.getElementById("toggle-flash");
-
-    qrScanner = new QrScanner(videoElem, async (decodedText) => {
-  try {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    qrScanner.stop(); // hentikan scanner sementara
-
-    // Ambil data titik dari Firestore
-    const locationDoc = await db.collection("locations").doc(decodedText).get();
-    if (!locationDoc.exists) {
-      alert("QR tidak terdaftar!");
-      return;
-    }
-    const namaTitik = locationDoc.data().nama;
-
-    // Ambil lokasi GPS
-    let lat = null, lng = null;
-    if (navigator.geolocation) {
-      await new Promise((resolve) => {
-        navigator.geolocation.getCurrentPosition((pos) => {
-          lat = pos.coords.latitude;
-          lng = pos.coords.longitude;
-          resolve();
-        }, resolve);
-      });
-    }
-
-    // Simpan log ke Firestore
-    await db.collection("patrol_logs").add({
-      userId: user.uid,
-      qrData: decodedText,
-      namaTitik: namaTitik,
-      lokasi: { lat, lng },
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-    alert(`✅ Log berhasil disimpan untuk titik: ${namaTitik}`);
-
-    // Tampilkan tombol scan ulang
-    document.getElementById("rescan-btn").style.display = "block";
-
-  } catch (error) {
-    alert("❌ Gagal menyimpan log: " + error.message);
-    console.error(error);
-    qrScanner.start(); // restart scanner jika error
+    loadLogs();
+    startScanner();
   }
 });
 
+// Fungsi untuk memulai ulang QR scanner
+function startScanner() {
+  qrScanner = new QrScanner(videoElem, async (decodedText) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
 
-    Html5Qrcode.getCameras().then(devices => {
-      if (devices && devices.length) {
-        const backCamera = devices.find(d => /back|rear/i.test(d.label)) || devices[0];
+      qrScanner.stop(); // hentikan scanner sementara
 
-        qrScanner.start(
-  userId: user.uid,
-  qrData: decodedText,
-  namaTitik: namaTitik,
-  lokasi: { lat, lng },
-  timestamp: firebase.firestore.FieldValue.serverTimestamp()
-}).then(() => {
-  alert(`Berhasil menyimpan log untuk titik: ${namaTitik}`);
-  qrScanner.stop(); // stop setelah berhasil menyimpan
-}).catch(error => {
-  alert("Gagal menyimpan log patroli: " + error.message);
-});
-          backCamera.id,
-          { fps: 10, qrbox: 250 },
-          async decodedText => {
-            document.getElementById("result").innerText = `Scanned: ${decodedText}`;
+      // Cek QR di Firestore
+      const locationDoc = await db.collection("locations").doc(decodedText).get();
+      if (!locationDoc.exists) {
+        alert("❌ QR tidak terdaftar!");
+        return;
+      }
+      const namaTitik = locationDoc.data().nama;
 
-            // Ambil lokasi GPS
-            navigator.geolocation.getCurrentPosition(async position => {
-              const lat = position.coords.latitude;
-              const lng = position.coords.longitude;
-
-              // Ambil nama titik dari koleksi locations
-              let namaTitik = "Tidak diketahui";
-              const lokasiDoc = await db.collection("locations").doc(decodedText).get();
-              if (lokasiDoc.exists) {
-                namaTitik = lokasiDoc.data().namaTitik;
-              }
-
-              // Simpan log ke Firestore
-              await db.collection("patrol_logs").add({
-                userId: user.uid,
-                qrData: decodedText,
-                namaTitik: namaTitik,
-                lokasi: { lat, lng },
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-              });
-
-              qrScanner.stop();
-            }, error => {
-              alert("Gagal mendapatkan lokasi GPS");
-            });
-          },
-          error => {}
-        ).then(() => {
-          flashBtn.classList.remove("hidden");
-          flashBtn.onclick = () => {
-            torchOn = !torchOn;
-            qrScanner.applyVideoConstraints({ advanced: [{ torch: torchOn }] });
-          };
+      // Ambil lokasi GPS
+      let lat = null, lng = null;
+      if (navigator.geolocation) {
+        await new Promise((resolve) => {
+          navigator.geolocation.getCurrentPosition((pos) => {
+            lat = pos.coords.latitude;
+            lng = pos.coords.longitude;
+            resolve();
+          }, resolve);
         });
       }
-    });
 
-    // Menampilkan histori scan user
-    db.collection("patrol_logs")
-      .where("userId", "==", user.uid)
-      .orderBy("timestamp", "desc")
-      .onSnapshot(snapshot => {
-        const logTable = document.getElementById("log-table");
-        logTable.innerHTML = "";
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          const time = data.timestamp?.toDate().toLocaleString() || "-";
-          const qr = data.qrData || "-";
-          const titik = data.namaTitik || "-";
-          const lokasi = data.lokasi ? `(${data.lokasi.lat.toFixed(5)}, ${data.lokasi.lng.toFixed(5)})` : "-";
-          const row = `<tr>
-            <td class="border px-2 py-1">${time}</td>
-            <td class="border px-2 py-1">${qr}</td>
-            <td class="border px-2 py-1">${titik}</td>
-            <td class="border px-2 py-1">${lokasi}</td>
-          </tr>`;
-          logTable.innerHTML += row;
-        });
+      // Simpan log ke Firestore
+      await db.collection("patrol_logs").add({
+        userId: user.uid,
+        qrData: decodedText,
+        namaTitik: namaTitik,
+        lokasi: { lat, lng },
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
       });
-  }
+
+      alert(`✅ Log berhasil disimpan untuk titik: ${namaTitik}`);
+
+      // Tampilkan tombol scan ulang
+      document.getElementById("rescan-btn").style.display = "block";
+
+    } catch (error) {
+      alert("❌ Gagal menyimpan log: " + error.message);
+      console.error(error);
+      qrScanner.start();
+    }
+  });
+
+  qrScanner.start();
+  document.getElementById("rescan-btn").style.display = "none";
+}
+
+// Fungsi logout
+document.getElementById("logout-btn").addEventListener("click", () => {
+  auth.signOut().then(() => {
+    window.location.href = "login.html";
+  });
 });
 
-function exportCSV() {
-  const rows = [["Waktu", "QR", "Titik", "Latitude", "Longitude"]];
-  db.collection("patrol_logs").get().then(snapshot => {
-    snapshot.forEach(doc => {
-      const d = doc.data();
-      const waktu = d.timestamp?.toDate().toLocaleString() || "";
-      const lat = d.lokasi?.lat || "";
-      const lng = d.lokasi?.lng || "";
-      rows.push([waktu, d.qrData, d.namaTitik, lat, lng]);
-    });
+// Tampilkan log patroli
+function loadLogs() {
+  const logList = document.getElementById("log-list");
+  const user = auth.currentUser;
 
-    const csv = rows.map(r => r.join(",")).join("\\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "log_patrol.csv";
-    a.click();
-    URL.revokeObjectURL(url);
-  });
+  db.collection("patrol_logs")
+    .where("userId", "==", user.uid)
+    .orderBy("timestamp", "desc")
+    .onSnapshot(snapshot => {
+      logList.innerHTML = "";
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const date = data.timestamp?.toDate().toLocaleString() || "-";
+        const li = document.createElement("li");
+        li.textContent = `${data.namaTitik} (${data.qrData}) - ${date}`;
+        logList.appendChild(li);
+      });
+    });
 }
