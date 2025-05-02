@@ -1,164 +1,109 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+function logout() {
+  auth.signOut().then(() => window.location.href = 'login.html');
+}
 
-// Konfigurasi Firebase (pindahkan dari firebase-config.js jika belum)
-const firebaseConfig = {
-  apiKey: "AIzaSyArIi3LoUzzKEMzuex4WJr-iIhYxQWCi-k",
-  authDomain: "qrpatrol-8bffa.firebaseapp.com",
-  projectId: "qrpatrol-8bffa",
-  storageBucket: "qrpatrol-8bffa.appspot.com",
-  messagingSenderId: "754593461619",
-  appId: "1:754593461619:web:5b61abddcdaa310203c106",
-  measurementId: "G-G39HTJZVZC"
-};
+let qrScanner;
+let torchOn = false;
 
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-let scanner;
-let currentUser;
-let videoElem = document.getElementById("qr-video");
-
-const rescanBtn = document.getElementById("rescan-btn");
-const flashBtn = document.getElementById("toggle-flash");
-const switchCamBtn = document.getElementById("switch-camera");
-
-// Periksa login
-onAuthStateChanged(auth, async (user) => {
+auth.onAuthStateChanged(user => {
   if (!user) {
     window.location.href = "login.html";
   } else {
-    currentUser = user;
-    initScanner();
-    loadHistory();
+    const qrRegion = document.getElementById("qr-reader");
+    const flashBtn = document.getElementById("toggle-flash");
+
+    qrScanner = new Html5Qrcode("qr-reader");
+
+    Html5Qrcode.getCameras().then(devices => {
+      if (devices && devices.length) {
+        const backCamera = devices.find(d => /back|rear/i.test(d.label)) || devices[0];
+
+        qrScanner.start(
+          backCamera.id,
+          { fps: 10, qrbox: 250 },
+          async decodedText => {
+            document.getElementById("result").innerText = `Scanned: ${decodedText}`;
+
+            // Ambil lokasi GPS
+            navigator.geolocation.getCurrentPosition(async position => {
+              const lat = position.coords.latitude;
+              const lng = position.coords.longitude;
+
+              // Ambil nama titik dari koleksi locations
+              let namaTitik = "Tidak diketahui";
+              const lokasiDoc = await db.collection("locations").doc(decodedText).get();
+              if (lokasiDoc.exists) {
+                namaTitik = lokasiDoc.data().namaTitik;
+              }
+
+              // Simpan log ke Firestore
+              await db.collection("patrol_logs").add({
+                userId: user.uid,
+                qrData: decodedText,
+                namaTitik: namaTitik,
+                lokasi: { lat, lng },
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+              });
+
+              qrScanner.stop();
+            }, error => {
+              alert("Gagal mendapatkan lokasi GPS");
+            });
+          },
+          error => {}
+        ).then(() => {
+          flashBtn.classList.remove("hidden");
+          flashBtn.onclick = () => {
+            torchOn = !torchOn;
+            qrScanner.applyVideoConstraints({ advanced: [{ torch: torchOn }] });
+          };
+        });
+      }
+    });
+
+    // Menampilkan histori scan user
+    db.collection("patrol_logs")
+      .where("userId", "==", user.uid)
+      .orderBy("timestamp", "desc")
+      .onSnapshot(snapshot => {
+        const logTable = document.getElementById("log-table");
+        logTable.innerHTML = "";
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const time = data.timestamp?.toDate().toLocaleString() || "-";
+          const qr = data.qrData || "-";
+          const titik = data.namaTitik || "-";
+          const lokasi = data.lokasi ? `(${data.lokasi.lat.toFixed(5)}, ${data.lokasi.lng.toFixed(5)})` : "-";
+          const row = `<tr>
+            <td class="border px-2 py-1">${time}</td>
+            <td class="border px-2 py-1">${qr}</td>
+            <td class="border px-2 py-1">${titik}</td>
+            <td class="border px-2 py-1">${lokasi}</td>
+          </tr>`;
+          logTable.innerHTML += row;
+        });
+      });
   }
 });
 
-// Inisialisasi scanner
-async function initScanner() {
-  const QrScanner = window.QrScanner;
-  const devices = await QrScanner.listCameras(true);
-  let currentCam = 0;
+function exportCSV() {
+  const rows = [["Waktu", "QR", "Titik", "Latitude", "Longitude"]];
+  db.collection("patrol_logs").get().then(snapshot => {
+    snapshot.forEach(doc => {
+      const d = doc.data();
+      const waktu = d.timestamp?.toDate().toLocaleString() || "";
+      const lat = d.lokasi?.lat || "";
+      const lng = d.lokasi?.lng || "";
+      rows.push([waktu, d.qrData, d.namaTitik, lat, lng]);
+    });
 
-  scanner = new QrScanner(videoElem, async (result) => {
-    if (result?.data) {
-      scanner.stop();
-      rescanBtn.classList.remove("hidden");
-      await handleScan(result.data);
-    }
-  }, {
-    returnDetailedScanResult: true
+    const csv = rows.map(r => r.join(",")).join("\\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "log_patrol.csv";
+    a.click();
+    URL.revokeObjectURL(url);
   });
-
-  if (devices.length > 0) {
-    await scanner.setCamera(devices[0].id);
-    flashBtn.classList.remove("hidden");
-    switchCamBtn.classList.remove("hidden");
-  }
-
-  scanner.start();
-
-  // Tombol Ganti Kamera
-  switchCamBtn.onclick = async () => {
-    currentCam = (currentCam + 1) % devices.length;
-    await scanner.setCamera(devices[currentCam].id);
-  };
-
-  // Tombol Flash
-  flashBtn.onclick = async () => {
-    const flashOn = await scanner.toggleFlash();
-    flashBtn.textContent = flashOn ? "🔦 Flash ON" : "🔦 Flash OFF";
-  };
-
-  rescanBtn.onclick = () => {
-    scanner.start();
-    rescanBtn.classList.add("hidden");
-  };
 }
-
-// Proses hasil scan
-async function handleScan(qrText) {
-  const kodeQR = qrText.trim();
-  const lokasiRef = collection(db, "location");
-  const q = query(lokasiRef, where("kode", "==", kodeQR));
-  const lokasiSnap = await getDocs(q);
-
-  let namaTitik = "Tidak dikenal";
-
-  lokasiSnap.forEach((doc) => {
-    namaTitik = doc.data().nama;
-  });
-
-  const userEmail = currentUser.email;
-
-  // Simpan log
-  await addDoc(collection(db, "logPatroli"), {
-    email: userEmail,
-    kode: kodeQR,
-    namaTitik,
-    waktu: new Date()
-  });
-
-  alert(`Scan berhasil di titik: ${namaTitik}`);
-  loadHistory();
-}
-
-// Ambil histori user
-async function loadHistory() {
-  const logList = document.getElementById("log-list");
-  logList.innerHTML = "Memuat...";
-
-  const q = query(
-    collection(db, "logPatroli"),
-    where("email", "==", currentUser.email),
-    orderBy("waktu", "desc")
-  );
-  const snapshot = await getDocs(q);
-
-  if (snapshot.empty) {
-    logList.innerHTML = "<li>Belum ada log.</li>";
-    return;
-  }
-
-  let items = [];
-  snapshot.forEach(doc => {
-    const data = doc.data();
-    const waktu = new Date(data.waktu?.seconds * 1000).toLocaleString("id-ID");
-    items.push(`<li><strong>${data.namaTitik}</strong> (${data.kode})<br><small>${waktu}</small></li>`);
-  });
-
-  logList.innerHTML = items.join("");
-}
-
-// Ekspor data
-document.getElementById("export-btn").onclick = async () => {
-  const q = query(
-    collection(db, "logPatroli"),
-    where("email", "==", currentUser.email),
-    orderBy("waktu", "desc")
-  );
-  const snapshot = await getDocs(q);
-  let csv = "Kode QR,Nama Titik,Waktu\n";
-
-  snapshot.forEach(doc => {
-    const data = doc.data();
-    const waktu = new Date(data.waktu?.seconds * 1000).toLocaleString("id-ID");
-    csv += `${data.kode},"${data.namaTitik}",${waktu}\n`;
-  });
-
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = "log_patroli.csv";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
-
-// Logout
-document.getElementById("logout-btn").onclick = () => {
-  signOut(auth);
-};
