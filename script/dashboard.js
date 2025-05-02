@@ -12,7 +12,54 @@ auth.onAuthStateChanged(user => {
     const qrRegion = document.getElementById("qr-reader");
     const flashBtn = document.getElementById("toggle-flash");
 
-    qrScanner = new Html5Qrcode("qr-reader");
+    qrScanner = new QrScanner(videoElem, async (decodedText) => {
+  try {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    qrScanner.stop(); // hentikan scanner sementara
+
+    // Ambil data titik dari Firestore
+    const locationDoc = await db.collection("locations").doc(decodedText).get();
+    if (!locationDoc.exists) {
+      alert("QR tidak terdaftar!");
+      return;
+    }
+    const namaTitik = locationDoc.data().nama;
+
+    // Ambil lokasi GPS
+    let lat = null, lng = null;
+    if (navigator.geolocation) {
+      await new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition((pos) => {
+          lat = pos.coords.latitude;
+          lng = pos.coords.longitude;
+          resolve();
+        }, resolve);
+      });
+    }
+
+    // Simpan log ke Firestore
+    await db.collection("patrol_logs").add({
+      userId: user.uid,
+      qrData: decodedText,
+      namaTitik: namaTitik,
+      lokasi: { lat, lng },
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    alert(`✅ Log berhasil disimpan untuk titik: ${namaTitik}`);
+
+    // Tampilkan tombol scan ulang
+    document.getElementById("rescan-btn").style.display = "block";
+
+  } catch (error) {
+    alert("❌ Gagal menyimpan log: " + error.message);
+    console.error(error);
+    qrScanner.start(); // restart scanner jika error
+  }
+});
+
 
     Html5Qrcode.getCameras().then(devices => {
       if (devices && devices.length) {
