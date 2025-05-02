@@ -19,6 +19,17 @@ auth.onAuthStateChanged(user => {
         const backCamera = devices.find(d => /back|rear/i.test(d.label)) || devices[0];
 
         qrScanner.start(
+  userId: user.uid,
+  qrData: decodedText,
+  namaTitik: namaTitik,
+  lokasi: { lat, lng },
+  timestamp: firebase.firestore.FieldValue.serverTimestamp()
+}).then(() => {
+  alert(`Berhasil menyimpan log untuk titik: ${namaTitik}`);
+  qrScanner.stop(); // stop setelah berhasil menyimpan
+}).catch(error => {
+  alert("Gagal menyimpan log patroli: " + error.message);
+});
           backCamera.id,
           { fps: 10, qrbox: 250 },
           async decodedText => {
